@@ -1,45 +1,78 @@
 import time
 from flask import Flask, request, render_template, jsonify
+
 from src.pipeline.predict_pipeline import CustomData, PredictPipeline
 
+# ============================================================
+# Elastic Beanstalk WSGI entrypoint
+# ============================================================
+# EB expects a callable named `application`
 application = Flask(__name__)
-
-# ✅ Load pipeline ONCE per process (fast inference)
-predict_pipeline = PredictPipeline()
+app = application
 
 
-@application.before_request
+# ============================================================
+# Lazy-load ML pipeline (CRITICAL for EB)
+# ============================================================
+# Loading models at import time causes Gunicorn to crash on EB
+# This guarantees the server starts first (no 502)
+_predict_pipeline = None
+
+def get_pipeline():
+    global _predict_pipeline
+    if _predict_pipeline is None:
+        _predict_pipeline = PredictPipeline()
+    return _predict_pipeline
+
+
+# ============================================================
+# Request timing (optional logging)
+# ============================================================
+@app.before_request
 def _start_timer():
     request._start_time = time.perf_counter()
 
 
-@application.after_request
+@app.after_request
 def _log_request_time(response):
     try:
         elapsed_ms = (time.perf_counter() - request._start_time) * 1000
-        print(f"{request.method} {request.path} -> {response.status_code} in {elapsed_ms:.2f} ms")
+        print(
+            f"{request.method} {request.path} "
+            f"-> {response.status_code} in {elapsed_ms:.2f} ms"
+        )
     except Exception:
         pass
     return response
 
 
-@application.get("/health")
+# ============================================================
+# Health check (USED BY EB / DEBUGGING)
+# ============================================================
+@app.get("/health")
 def health():
     return jsonify({"status": "ok"})
 
 
-@application.route("/")
+@app.get("/ping")
+def ping():
+    return "pong"
+
+
+# ============================================================
+# Routes
+# ============================================================
+@app.route("/")
 def index():
     return render_template("index.html")
 
 
-@application.route("/predictdata", methods=["GET", "POST"])
+@app.route("/predictdata", methods=["GET", "POST"])
 def predict_datapoint():
     if request.method == "GET":
         return render_template("home.html", results=None, error=None)
 
     try:
-        # ✅ Strict validation: do NOT default to 0
         required_fields = [
             "gender",
             "ethnicity",
@@ -57,7 +90,6 @@ def predict_datapoint():
         reading_score = float(request.form.get("reading_score"))
         writing_score = float(request.form.get("writing_score"))
 
-        # ✅ Range validation
         if not (0 <= reading_score <= 100):
             raise ValueError("Reading score must be between 0 and 100.")
         if not (0 <= writing_score <= 100):
@@ -74,9 +106,9 @@ def predict_datapoint():
         )
 
         pred_df = data.get_data_as_data_frame()
-        preds = predict_pipeline.predict(pred_df)
 
-        # ✅ Convert to python float + clamp to realistic range (0–100)
+        preds = get_pipeline().predict(pred_df)
+
         result = float(preds[0])
         result = max(0.0, min(100.0, result))
 
@@ -85,8 +117,5 @@ def predict_datapoint():
     except Exception as e:
         return render_template("home.html", results=None, error=str(e))
 
-
 if __name__ == "__main__":
-    # ✅ No debug reloader, better responsiveness
-    # application.run(host="0.0.0.0", port=5000, debug=False, threaded=True)
-    application.run(host="0.0.0.0", port=5000)
+    app.run(host="0.0.0.0", port=5000, debug=False, threaded=True)
