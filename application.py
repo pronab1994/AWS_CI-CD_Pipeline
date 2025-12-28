@@ -3,18 +3,17 @@ from flask import Flask, request, render_template, jsonify
 from src.pipeline.predict_pipeline import CustomData, PredictPipeline
 
 application = Flask(__name__)
-app = application
 
 # ✅ Load pipeline ONCE per process (fast inference)
 predict_pipeline = PredictPipeline()
 
 
-@app.before_request
+@application.before_request
 def _start_timer():
     request._start_time = time.perf_counter()
 
 
-@app.after_request
+@application.after_request
 def _log_request_time(response):
     try:
         elapsed_ms = (time.perf_counter() - request._start_time) * 1000
@@ -24,17 +23,17 @@ def _log_request_time(response):
     return response
 
 
-@app.get("/health")
+@application.get("/health")
 def health():
     return jsonify({"status": "ok"})
 
 
-@app.route("/")
+@application.route("/")
 def index():
     return render_template("index.html")
 
 
-@app.route("/predictdata", methods=["GET", "POST"])
+@application.route("/predictdata", methods=["GET", "POST"])
 def predict_datapoint():
     if request.method == "GET":
         return render_template("home.html", results=None, error=None)
@@ -89,4 +88,5 @@ def predict_datapoint():
 
 if __name__ == "__main__":
     # ✅ No debug reloader, better responsiveness
-    app.run(host="0.0.0.0", port=5000, debug=False, threaded=True)
+    # application.run(host="0.0.0.0", port=5000, debug=False, threaded=True)
+    application.run(host="0.0.0.0", port=5000)
