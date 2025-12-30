@@ -79,28 +79,6 @@ This design ensures **training and inference are fully decoupled**, which improv
 
 📌 **Backend entry point:**
 application.py
-📌 Templates (UI):
-
-templates/home.html
-templates/index.html
-🖥️ UI Inputs (Mapped to Training Schema)
-The prediction form collects:
-
-Gender
-
-Race / Ethnicity
-
-Parental level of education
-
-Lunch type
-
-Test preparation course
-
-Reading score
-
-Writing score
-
-These fields are aligned with the training pipeline to ensure consistent inference.
 
 🧪 How to Run Locally
 
