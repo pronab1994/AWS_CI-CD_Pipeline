@@ -102,53 +102,20 @@ Writing score
 
 These fields are aligned with the training pipeline to ensure consistent inference.
 
-🗂️ Project Structure
-
-MLProject/
-├── README.md
-├── application.py
-├── requirements.txt
-│
-├── artifacts/                     # Generated after training
-│   ├── model.pkl
-│   └── preprocessor.pkl
-│
-├── assets/                        # README images & screenshots
-│   ├── banner.jpg
-│   ├── frontend_ui.png
-│   ├── index_ui.png
-│   ├── prediction_result.png
-│   ├── ml_pipeline.png
-│   └── backend_flow.png
-│
-├── src/
-│   ├── components/
-│   │   ├── data_ingestion.py
-│   │   ├── data_transformation.py
-│   │   └── model_trainer.py
-│   ├── pipeline/
-│   │   ├── train_pipeline.py
-│   │   └── predict_pipeline.py
-│   ├── logger.py
-│   └── exception.py
-│
-├── templates/
-│   ├── home.html
-│   └── index.html
-│
-└── logs/
 🧪 How to Run Locally
 
 git clone <your-repo-url>
+
 cd MLProject
+
 pip install -r requirements.txt
+
 python src/pipeline/train_pipeline.py
+
 python application.py
-Open in your browser:
 
-
-http://127.0.0.1:5000
 🛠️ Technology Stack
+
 Language: Python
 
 Machine Learning: Scikit-learn, CatBoost (optionally XGBoost)
