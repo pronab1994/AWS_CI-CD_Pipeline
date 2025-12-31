@@ -49,7 +49,7 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      # ✅ Make Buildx explicit (prevents your build error)
+      # ✅ Important: make Buildx explicit so the runner doesn't mis-handle build
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -60,17 +60,17 @@ jobs:
           ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY_NAME }}
           IMAGE_TAG: latest
         run: |
-          echo "Building $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+          echo "Building image: ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
 
-          # ✅ Buildx requires a context argument at the end: "."
+          # ✅ Buildx MUST end with a build context (.)
           docker buildx build --load \
-            -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG \
+            -t ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG} \
             .
 
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          docker push ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}
 
-          # ✅ Use GITHUB_OUTPUT instead of deprecated set-output
-          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> "$GITHUB_OUTPUT"
+          # ✅ New output method (set-output is deprecated)
+          echo "image=${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}" >> "$GITHUB_OUTPUT"
 
   continuous-deployment:
     name: Continuous Deployment
