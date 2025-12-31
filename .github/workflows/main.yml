@@ -2,7 +2,8 @@ name: workflow
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
     paths-ignore:
       - "README.md"
 
@@ -55,18 +56,23 @@ jobs:
         id: build-image
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY_NAME }}
+          ECR_REPOSITORY_RAW: ${{ secrets.ECR_REPOSITORY_NAME }}
           IMAGE_TAG: latest
         run: |
+          set -e
+
+          # ✅ Sanitize secret: remove CR/LF and trim spaces
+          ECR_REPOSITORY="$(echo -n "${ECR_REPOSITORY_RAW}" | tr -d '\r\n' | xargs)"
+
           echo "ECR_REGISTRY=${ECR_REGISTRY}"
           echo "ECR_REPOSITORY=${ECR_REPOSITORY}"
           echo "IMAGE_TAG=${IMAGE_TAG}"
 
-          # IMPORTANT: single-line build so '.' is never lost
-          docker buildx build --load -t ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG} .
+          # ✅ Buildx MUST end with a build context (.)
+          docker buildx build --load -t "${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}" .
+          docker push "${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
 
-          docker push ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}
-
+          # ✅ Output (set-output is deprecated)
           echo "image=${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}" >> "$GITHUB_OUTPUT"
 
   continuous-deployment:
