@@ -2,8 +2,7 @@ name: workflow
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
     paths-ignore:
       - "README.md"
 
@@ -49,7 +48,6 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      # ✅ Important: make Buildx explicit so the runner doesn't mis-handle build
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -60,16 +58,15 @@ jobs:
           ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY_NAME }}
           IMAGE_TAG: latest
         run: |
-          echo "Building image: ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
+          echo "ECR_REGISTRY=${ECR_REGISTRY}"
+          echo "ECR_REPOSITORY=${ECR_REPOSITORY}"
+          echo "IMAGE_TAG=${IMAGE_TAG}"
 
-          # ✅ Buildx MUST end with a build context (.)
-          docker buildx build --load \
-            -t ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG} \
-            .
+          # IMPORTANT: single-line build so '.' is never lost
+          docker buildx build --load -t ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG} .
 
           docker push ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}
 
-          # ✅ New output method (set-output is deprecated)
           echo "image=${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}" >> "$GITHUB_OUTPUT"
 
   continuous-deployment:
