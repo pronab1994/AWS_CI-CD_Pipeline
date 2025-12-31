@@ -1,22 +1,8 @@
-FROM python:3.9-slim
-
+FROM python:3.8-slim-buster
 WORKDIR /application
+COPY . /application
 
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
+RUN apt update -y && apt install awscli -y
 
-# System deps (ffmpeg + libs)
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    ffmpeg libsm6 libxext6 unzip \
-    && rm -rf /var/lib/apt/lists/*
-
-# Install Python deps first (better caching)
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Copy the rest of the project
-COPY . .
-
-EXPOSE 5000
-
-CMD ["python", "application.py"]
+RUN apt-get update && apt-get install ffmpeg libsm6 libxext6 unzip -y && pip install -r requirements.txt
+CMD ["python3", "application.py"]
